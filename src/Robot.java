@@ -55,6 +55,8 @@ public class Robot {
         // Vérifier si la case cible contient de l'eau
         if (targetCell == TypeCase.WATER.getSymbol()) {
             drowned = true;
+            position.setLocation(newX, newY);
+            terrain[newX][newY] = ' ';
             return;
         }
 

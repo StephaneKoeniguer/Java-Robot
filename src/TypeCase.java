@@ -3,7 +3,8 @@ public enum TypeCase {
     ROCK('*'),     // Roche
     MINERAL('$'),  // Minerai
     WATER('#'),    // Eau
-    ROBOT('A');    // Robot
+    ROBOT('A'),   // Robot
+    ROBOT_DEAD('D');    // Robot dead
 
     private final char symbol;
 

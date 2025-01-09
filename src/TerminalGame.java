@@ -1,4 +1,3 @@
-import java.util.Random;
 import java.awt.Point;
 
 public class TerminalGame {
@@ -8,36 +7,13 @@ public class TerminalGame {
      */
     public void start() throws CharInconnu {
 
-        // Initialisation du terrain et du robot
-        char[][] terrain = {
-                {'*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*'},
-                {'*', ' ', ' ', ' ', '$', ' ', ' ', ' ', '*', '*', '*', ' ', ' ', '*'},
-                {'*', '*', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*'},
-                {'*', '*', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*'},
-                {'*', ' ', '#', ' ', ' ', ' ', ' ', '*', '*', ' ', ' ', ' ', ' ', '*'},
-                {'*', ' ', '$', ' ', ' ', ' ', '*', '*', ' ', ' ', '#', ' ', ' ', '*'},
-                {'*', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*'},
-                {'*', ' ', ' ', ' ', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*'},
-                {'*', ' ', ' ', ' ', ' ', ' ', ' ', '$', ' ', ' ', ' ', ' ', ' ', '*'},
-                {'*', ' ', '$', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*', '*', ' ', '*'},
-                {'*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*'},
-        };
-
-        // Initialiser l'affichage terminal
+        // Initialisation du terrain
+        char[][] terrain = ConfigTerrain.getTerrain();
         AfficheRobotTerminal affichageTerminal = new AfficheRobotTerminal();
         affichageTerminal.initialiser(terrain);
 
-        // Initialisation du robot et affichage carte
-        Point startPosition = new Point(9, 4);
-        Robot robot = new Robot(startPosition, terrain);
-        affichageTerminal.changerCase(startPosition.x, startPosition.y, TypeCase.ROBOT.getSymbol());
-        affichageTerminal.afficher();
-
-        // Création d'un programme d'actions
-        Command[] program = generateRandomProgram(20);
-
-        // Chargement du programme
-        robot.setProgram(program);
+        // Initialisation du robot et du programme
+        Robot robot = initializeRobotAndProgram(affichageTerminal, terrain, 20);
 
         // Exécution du programme
         System.out.println("Début de l'exécution du programme...");
@@ -82,27 +58,29 @@ public class TerminalGame {
 
     }
 
-
     /**
-     * Fonction pour générer un programme d'actions aléatoire
+     * Initialise le robot et charge le program
+     * @param affichageTerminal
+     * @param terrain
+     * @param programLength
+     * @return
+     * @throws CharInconnu
      */
-    private Command[] generateRandomProgram(int length) {
-        Random random = new Random();
-        Command[] program = new Command[length];
+    private Robot initializeRobotAndProgram(AfficheRobotTerminal affichageTerminal, char[][] terrain, int programLength) throws CharInconnu {
 
-        for (int i = 0; i < length; i++) {
-            int actionType = random.nextInt(2); // 0 pour MOVE, 1 pour WAIT
-            if (actionType == 0) {
-                // Générer une action de déplacement avec une direction aléatoire
-                Direction direction = Direction.values()[random.nextInt(Direction.values().length)];
-                program[i] = new ActionCommand(direction);
-            } else {
-                // Générer une action d'attente
-                program[i] = new ActionCommand(ActionType.WAIT);
-            }
-        }
+        // Initialisation du robot
+        Point startPosition = new Point(9, 4);
+        Robot robot = new Robot(startPosition, terrain);
+        affichageTerminal.changerCase(startPosition.x, startPosition.y, TypeCase.ROBOT.getSymbol());
+        affichageTerminal.afficher();
 
-        return program;
+        // Création d'un programme d'actions
+        Command[] program = ActionCommand.generateRandomProgram(programLength);
+
+        // Chargement du programme
+        robot.setProgram(program);
+
+        return robot;
     }
 
 }

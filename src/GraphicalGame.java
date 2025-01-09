@@ -2,23 +2,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Random;
 
 public class GraphicalGame {
 
-    private final char[][] terrain = {
-            {'*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*'},
-            {'*', ' ', ' ', ' ', '$', ' ', ' ', ' ', '*', '*', '*', ' ', ' ', '*'},
-            {'*', '*', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*'},
-            {'*', '*', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*'},
-            {'*', ' ', '#', ' ', ' ', ' ', ' ', '*', '*', ' ', ' ', ' ', ' ', '*'},
-            {'*', ' ', '$', ' ', ' ', ' ', '*', '*', ' ', ' ', '#', ' ', ' ', '*'},
-            {'*', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*'},
-            {'*', ' ', ' ', ' ', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*'},
-            {'*', ' ', ' ', ' ', ' ', ' ', ' ', '$', ' ', ' ', ' ', ' ', ' ', '*'},
-            {'*', ' ', '$', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '*', '*', ' ', '*'},
-            {'*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*'}
-    };
+    private final char[][] terrain = ConfigTerrain.getTerrain();
 
     public void start() throws CharInconnu {
         // Créer une fenêtre
@@ -49,30 +36,18 @@ public class GraphicalGame {
             }
         }
 
-        // Initialisation du robot
-        Point startPosition = new Point(5, 5);
-        JLabel robotCell = gridLabels[startPosition.x][startPosition.y];
-        ImageIcon robotIcon = getIconForCell(TypeCase.ROBOT.getSymbol());
-
-        if (robotIcon != null) {
-            robotCell.setIcon(robotIcon); // Mettre à jour l'icône de la case avec celle du robot
-        }
 
         // Mettre à jour la grille pour afficher les modifications
         gridPanel.revalidate();
         gridPanel.repaint();
 
-        // Création d'un programme d'actions
-        Command[] program = generateRandomProgram(20);
-
-        AfficheRobotTerminal affichageTerminal = new AfficheRobotTerminal();
-        affichageTerminal.initialiser(terrain);
-        Robot robot = new Robot(startPosition, terrain);
-        // Chargement du programme
-        robot.setProgram(program);
-
         // Afficher la fenêtre
         frame.setVisible(true);
+
+        // Appel de la méthode pour initialiser le robot et charger le programme
+        Robot robot = initializeRobotAndProgram(gridLabels, terrain, 30);
+        ImageIcon robotIcon = getIconForCell(TypeCase.ROBOT.getSymbol());
+
 
         // Utiliser un Timer pour exécuter le programme
         Timer timer = new Timer(500, new ActionListener() {
@@ -94,6 +69,43 @@ public class GraphicalGame {
                 Point currentPosition = robot.getPosition();
                 gridLabels[currentPosition.x][currentPosition.y].setIcon(robotIcon);
 
+                // Si le robot a trouvé des minerais
+                if (robot.getMineralCount() > 0) {
+                    JOptionPane.showMessageDialog(
+                            frame,
+                            "Le robot a trouvé des minerais ! Quantité : " + robot.getMineralCount(),
+                            "Fin de simulation",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                    gridLabels[currentPosition.x][currentPosition.y].setIcon(getIconForCell(TypeCase.ROBOT.getSymbol()));
+                    System.exit(0);
+                }
+
+                // Si le robot a coulé, afficher un message
+                if (robot.hasDrowned()) {
+                    JOptionPane.showMessageDialog(frame, "Le robot a coulé !", "Fin de simulation", JOptionPane.INFORMATION_MESSAGE);
+                    gridLabels[currentPosition.x][currentPosition.y].setIcon(getIconForCell(TypeCase.ROBOT_DEAD.getSymbol()));
+                    System.exit(0);
+                }
+
+                // Si le programme est terminé
+                if (robot.isProgramComplete()) {
+                    // Afficher un message à l'écran
+                    JOptionPane.showMessageDialog(frame, "Programme terminé !", "Fin de simulation", JOptionPane.INFORMATION_MESSAGE);
+
+                    // Fermer la fenêtre après 5 secondes
+                    Timer closeTimer = new Timer(5000, new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            frame.dispose(); // Fermer la fenêtre
+                            ((Timer) e.getSource()).stop(); // Stopper le Timer
+                        }
+                    });
+                    closeTimer.setRepeats(false); // Exécuter une seule fois
+                    closeTimer.start();
+                    System.exit(0);
+                }
+
                 // Rafraîchir l'affichage
                 gridPanel.revalidate();
                 gridPanel.repaint();
@@ -105,6 +117,41 @@ public class GraphicalGame {
 
     timer.start();
 
+    }
+
+
+    /**
+     * Initialisation du robot et du programme
+     * @param gridLabels
+     * @param terrain
+     * @param programLength
+     * @return
+     * @throws CharInconnu
+     */
+    private Robot initializeRobotAndProgram(JLabel[][] gridLabels, char[][] terrain, int programLength) throws CharInconnu {
+        // Initialisation du robot
+        Point startPosition = new Point(5, 5);
+        JLabel robotCell = gridLabels[startPosition.x][startPosition.y];
+        ImageIcon robotIcon = getIconForCell(TypeCase.ROBOT.getSymbol());
+
+        if (robotIcon != null) {
+            robotCell.setIcon(robotIcon); // Mettre à jour l'icône de la case avec celle du robot
+        }
+
+        // Création d'un programme d'actions
+        Command[] program = ActionCommand.generateRandomProgram(programLength);
+
+        // Initialisation de l'affichage du terminal et du robot
+        AfficheRobotTerminal affichageTerminal = new AfficheRobotTerminal();
+        affichageTerminal.initialiser(terrain);
+
+        // Création du robot avec la position initiale et le terrain
+        Robot robot = new Robot(startPosition, terrain);
+
+        // Chargement du programme
+        robot.setProgram(program);
+
+        return robot;
     }
 
     /**
@@ -123,7 +170,8 @@ public class GraphicalGame {
             case '#' -> fileName = "r-water.png";
             case '$' -> fileName = "r-coal.png";
             case 'A' -> fileName = "r-robot.png";
-            default -> fileName = "r-robot-bis.png";
+            case 'D' -> fileName = "r-robot-bis.png";
+            default -> fileName = "r-robot-ter.png";
         }
 
         // Charger l'image
@@ -133,33 +181,6 @@ public class GraphicalGame {
             System.out.println("Erreur lors du chargement de l'icône : " + fileName);
             return null;
         }
-    }
-
-
-
-
-
-
-    /**
-     * Fonction pour générer un programme d'actions aléatoire
-     */
-    private Command[] generateRandomProgram(int length) {
-        Random random = new Random();
-        Command[] program = new Command[length];
-
-        for (int i = 0; i < length; i++) {
-            int actionType = random.nextInt(2); // 0 pour MOVE, 1 pour WAIT
-            if (actionType == 0) {
-                // Générer une action de déplacement avec une direction aléatoire
-                Direction direction = Direction.values()[random.nextInt(Direction.values().length)];
-                program[i] = new ActionCommand(direction);
-            } else {
-                // Générer une action d'attente
-                program[i] = new ActionCommand(ActionType.WAIT);
-            }
-        }
-
-        return program;
     }
 
 }
