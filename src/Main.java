@@ -28,7 +28,6 @@ public class Main {
      * Lancer le jeu en mode terminal
      */
     public static void gameTerminal() throws CharInconnu {
-
         TerminalGame game = new TerminalGame();
         game.start();
     }
